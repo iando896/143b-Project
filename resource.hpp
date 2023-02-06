@@ -1,11 +1,11 @@
 #pragma once
-#include <vector>
+#include <deque>
 
 class Resource {
 private:
     int state;
     int inventory;
-    std::vector<int> waitlist;
+    std::deque<std::pair<int,int>> waitlist;
 public:
     Resource() {state = -1; inventory = -1;}
     Resource(int st, int inv) {state = st; inventory = inv;}
@@ -16,5 +16,7 @@ public:
     int getInventory();
     void setInventory(int n);
 
-    void addToWaitlist(int proc);
+    void addToWaitlist(int proc, int n);
+    void removeFromWaitlist(int proc, int n);
+    void clearWaitlist();
 };

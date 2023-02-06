@@ -16,6 +16,10 @@ void Resource::setInventory(int n) {
     inventory = n;
 } 
 
-void Resource::addToWaitlist(int proc) {
-    waitlist.push_back(proc);
+void Resource::addToWaitlist(int proc, int n) {
+    waitlist.push_back(std::pair<int,int> (proc,n));
+}
+
+void Resource::removeFromWaitlist(int proc, int n) {
+    waitlist.push_back(std::pair<int,int> (proc, n));
 }

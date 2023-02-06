@@ -1,5 +1,6 @@
 #pragma once
 #include <deque>
+#include <unordered_map>
 
 #define READY 1
 #define BLOCKED 0
@@ -14,8 +15,8 @@ private:
     //-1 if no parent
     int parent;
     int priority;
-    std::deque<int> children;
-    std::deque<int> resources;
+    std::unordered_set<int> children;
+    std::unordered_map<int,int> resources;
 public:
     Process() {state = -1; parent = -1; priority = -1;}
     Process(int st, int par, int prio);
@@ -28,8 +29,12 @@ public:
     int getParent();
     void setParent(int par);
 
+    int childrenSize();
     void addChild(int child);
+    std::unordered_set<int> getChildren();
+    void removeChild(int proc);
     void clearChildren();
-    void addResource(int res);
+
+    void addResource(int res, int n);
     void clearResources();
 };

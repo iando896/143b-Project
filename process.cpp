@@ -30,16 +30,30 @@ void Process::setPriority(int prio) {
     priority = prio;
 }
 
+int Process::childrenSize() {
+    return children.size();
+}
+
+std::unordered_set<int> Process::getChildren() {
+    // if (ind < 0 or ind >= children.size())
+    //     return -1;
+    return children;
+}
+
+void Process::removeChild(int proc) {
+    children.erase(proc);
+}
+
 void Process::addChild(int child) {
-    children.push_back(child);
+    children.insert(child);
 }
 
 void Process::clearChildren() {
     children.clear();
 }
 
-void Process::addResource(int res) {
-    resources.push_back(res);
+void Process::addResource(int res, int n) {
+    resources[res] = n;
 }
 
 void Process::clearResources() {
