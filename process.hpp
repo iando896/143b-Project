@@ -1,6 +1,7 @@
 #pragma once
 #include <deque>
 #include <unordered_map>
+#include <iostream>
 
 #define READY 1
 #define BLOCKED 0
@@ -36,6 +37,8 @@ public:
 
     int childrenSize();
     //std::unordered_set<int>& getChildren();
+    bool findChild(int child);
+    void printChildren();
     int frontChildren();
     void popChildren();
     void pushChild(int child);

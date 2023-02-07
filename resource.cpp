@@ -1,5 +1,15 @@
 #include "resource.hpp"
 
+void Resource::printResource() {
+    std::cout << "State: " << state << std::endl;
+    std::cout << "Inventory: " << inventory << std::endl;
+    std::cout << "Waitlist: ";
+    for (int i = 0; i < waitlist.size(); i++) {
+        std::cout << waitlist[i].first << ":" << waitlist[i].second << " ";
+    }
+    std::cout << std::endl;
+}
+
 int Resource::getState() {
     return state;
 }
@@ -27,6 +37,7 @@ std::deque<std::pair<int,int>>& Resource::getWaitlist() {
 bool Resource::removeFromWaitlist(int proc) {
     auto it = waitlist.begin();
     for (; it != waitlist.end(); it++) {
+        //std::cout << it->first << std::endl;
         if (it->first == proc)
             break;
     }

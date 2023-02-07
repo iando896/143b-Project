@@ -1,5 +1,6 @@
 #pragma once
 #include <deque>
+#include <iostream>
 
 #define ALLOCATED 1
 #define FREE 0
@@ -12,6 +13,7 @@ private:
 public:
     Resource() {state = -1; inventory = -1;}
     Resource(int st, int inv) {state = st; inventory = inv;}
+    void printResource();
 
     int getState();
     void setState(int st);

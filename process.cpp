@@ -62,6 +62,21 @@ bool Process::removeChild(int proc) {
     return false;
 }
 
+void Process::printChildren() {
+    for (int j = 0; j < children.size(); j++) {
+        std::cout << children[j] << " ";
+    }
+    std::cout << std::endl;
+}
+
+bool Process::findChild(int child) {
+    for (int i = 0; i < children.size(); i++) {
+        if (children[i] == child)
+            return true;
+    }
+    return false;
+}
+
 int Process::frontChildren() {
     return children.front();
 }
