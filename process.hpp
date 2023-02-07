@@ -4,7 +4,8 @@
 
 #define READY 1
 #define BLOCKED 0
-#define FREE -1
+#define OPEN -1
+
 class Process {
 private:
     //-1 - clear to be replaced
@@ -15,13 +16,17 @@ private:
     //-1 if no parent
     int parent;
     int priority;
-    std::unordered_set<int> children;
+    std::deque<int> children;
     std::unordered_map<int,int> resources;
+    std::deque<int> waiting;
 public:
     Process() {state = -1; parent = -1; priority = -1;}
     Process(int st, int par, int prio);
     int getState();
-    void setState(int st);
+    //void setState(int st);
+    void ready();
+    void open();
+    void block();
 
     int getPriority();
     void setPriority(int pr);
@@ -30,11 +35,21 @@ public:
     void setParent(int par);
 
     int childrenSize();
-    void addChild(int child);
-    std::unordered_set<int> getChildren();
-    void removeChild(int proc);
+    //std::unordered_set<int>& getChildren();
+    int frontChildren();
+    void popChildren();
+    void pushChild(int child);
+    bool removeChild(int proc);
     void clearChildren();
 
-    void addResource(int res, int n);
+    std::unordered_map<int,int> getResources();
+    void addResource(int r, int n);
+    void removeResource(int r);
     void clearResources();
+
+    void pushWaiting(int r);
+    int frontWaiting();
+    void popWaiting();
+    int waitingSize();
+    void clearWaiting();
 };

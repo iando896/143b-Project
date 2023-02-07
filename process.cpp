@@ -10,8 +10,16 @@ int Process::getState() {
     return state;
 }
 
-void Process::setState(int st) {
-    state = st;
+void Process::block() {
+    state = BLOCKED;
+}
+
+void Process::ready() {
+    state = READY;
+}
+
+void Process::open() {
+    state = OPEN;
 }
 
 int Process::getParent() {
@@ -34,28 +42,74 @@ int Process::childrenSize() {
     return children.size();
 }
 
-std::unordered_set<int> Process::getChildren() {
-    // if (ind < 0 or ind >= children.size())
-    //     return -1;
-    return children;
+// std::unordered_set<int>& Process::getChildren() {
+//     // if (ind < 0 or ind >= children.size())
+//     //     return -1;
+//     return children;
+// }
+
+bool Process::removeChild(int proc) {
+    auto it = children.begin();
+    for (; it != children.end(); it++)
+    {
+        if (*it == proc)
+            break;
+    }
+    if (it != children.end()) {
+        children.erase(it);
+        return true;
+    }
+    return false;
 }
 
-void Process::removeChild(int proc) {
-    children.erase(proc);
+int Process::frontChildren() {
+    return children.front();
 }
 
-void Process::addChild(int child) {
-    children.insert(child);
+void Process::popChildren() {
+    children.pop_front();
+}
+
+void Process::pushChild(int child) {
+    children.push_back(child);
 }
 
 void Process::clearChildren() {
     children.clear();
 }
 
-void Process::addResource(int res, int n) {
-    resources[res] = n;
+std::unordered_map<int,int> Process::getResources() {
+    return resources;
+}
+
+void Process::addResource(int r, int n) {
+    resources[r] = n;
+}
+
+void Process::removeResource(int r) {
+    resources.erase(r);
 }
 
 void Process::clearResources() {
     resources.clear();
+}
+
+void Process::pushWaiting(int r) {
+    waiting.push_back(r);
+}
+
+int Process::frontWaiting() {
+    return waiting.front();
+}
+
+void Process::popWaiting() {
+    waiting.pop_front();
+}
+
+void Process::clearWaiting() {
+    waiting.clear();
+}
+
+int Process::waitingSize() {
+    return waiting.size();
 }

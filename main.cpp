@@ -19,33 +19,72 @@ static Process PCB[PCB_SIZE];
 static Resource RCB[RCB_SIZE];
 static std::deque<int> RL[READY_LIST_SIZE];
 
+//for debugging
+void printRL() {
+    cout << endl << "READY LIST: " << endl;
+    for (int i = PRIO_HIGH; i >= PRIO_LOW; i--) {
+        cout << "Priority " << i << ": ";
+        for (int j = 0; j < RL[i].size(); j++)
+        {
+            cout << RL[i][j] << " ";
+        }
+        cout << endl;
+    }
+    cout << endl;
+}
+
+void printAllChildren() {
+    cout << endl << "PCB LIST: " << endl;
+    for (int i = 0; i < PCB_SIZE; i++) {
+        Process& proc = PCB[i];
+        cout << "PCB [" << i << "]: ";
+        if (proc.getState() != OPEN) {
+            //cout << "READY" << endl;
+            for (int j = 0; j < proc.childrenSize(); j++) {
+                cout << proc.frontChildren() << " ";
+                proc.popChildren();
+            }
+        }
+        cout << endl;
+    }
+    cout << endl;
+}
+
 // Erase all previous contents of the data structures PCB, RCB, RL
 // Create a single running process at PCB[0] with priority 0
 // Enter the process into the RL at the lowest-priority level 0
-
 void init () {
     for (int i = 0; i < PCB_SIZE; i++) {
-        PCB[i].setState(FREE);
+        PCB[i].open();
         PCB[i].clearChildren();
         PCB[i].clearResources();
     }
 
     for(int i = 0; i < RCB_SIZE; i++) {
-        RCB[i].setState(FREE);
-        //clear waitlist
+        RCB[i].clearWaitlist();
+        if (i < 2) {
+            RCB[i].setInventory(1);
+            RCB[i].setState(1);
+        } else if (i < 3) {
+            RCB[i].setInventory(2);
+            RCB[i].setState(2);
+        } else {
+            RCB[i].setInventory(3);
+            RCB[i].setState(3);
+        }
     }
 
     for (int i = 0; i < READY_LIST_SIZE; i++) {
         RL[i].clear();
     }
-    PCB[0].setState(READY);
+    PCB[0].ready();
     PCB[0].setParent(-1);
     PCB[0].setPriority(PRIO_LOW);
     RL[0].push_back(PRIO_LOW);
 }
 
 int scheduler() {
-    for (int i = READY_LIST_SIZE - 1; i >= 0; i--) {
+    for (int i = PRIO_HIGH; i >= PRIO_LOW; i--) {
         if (!RL[i].empty()) {
             return RL[i].front();
         }
@@ -61,7 +100,6 @@ int scheduler() {
 // resources = NULL
 // insert j into RL
 // display: “process j created”
-
 bool create(int prio) {
     //find free spot in PCB
     //create process in ready state
@@ -80,48 +118,119 @@ bool create(int prio) {
         return false;
 
     int running = scheduler();
-    PCB[free].setState(READY);
+    PCB[free].ready();
     PCB[free].setParent(running);
+    PCB[free].setPriority(prio);
     PCB[free].clearChildren();
     PCB[free].clearResources();
 
-    PCB[running].addChild(free);
+    PCB[running].pushChild(free);
     RL[prio].push_back(free);
     return true;
 }
 
+bool release(int r, int n) {
+    int running = scheduler();
+    int rState = RCB[r].getState();
+    Process& curr_proc = PCB[running];
+    pair<int,int> held;
+
+    auto it = curr_proc.getResources().begin();
+    for (; it != curr_proc.getResources().end(); it++) {
+        if (it->first == r and it->second == n)
+            held = *it;
+    }
+    if (it == curr_proc.getResources().end())
+        return false;
+    curr_proc.removeResource(r);
+    RCB[r].setState(RCB[r].getState() + n);
+
+    while (!RCB[r].getWaitlist().empty() and rState > 0) {
+        pair<int,int> next = RCB[r].getWaitlist().front();
+        if (rState >= next.second) {
+            RCB[r].setState(RCB[r].getState() - next.second);
+            PCB[next.first].addResource(r, next.second);
+            PCB[next.first].ready();
+            RCB[r].getWaitlist().pop_front();
+            RL[PCB[next.first].getPriority()].push_back(next.first);
+        } else
+            break;
+    }
+
+    return true;
+}
+
+// for all k in children of j destroy(k)
+// remove j from parent's list
+// remove j from RL or waiting list
+// release all resources of j
+// free PCB of j
 bool destroy(int proc) {
-    Process& dest = PCB[proc];
-    // for (int i = 0; i < dest.childrenSize(); i++) {
-    //     int child = dest.getChild(i);
-    //     if (child == -1)
-    //         return false;
-    //     if (destroy(child) == false)
-    //         return false;
-    // }
-    for (auto it = dest.getChildren().begin(); it != dest.getChildren().end(); it++) {
-        if (destroy(*it) == false)
+    //check that process is in bound and in ready list
+    printAllChildren();
+    if (proc < 0 or proc > PCB_SIZE - 1)
+        return false;
+    Process& curr_proc = PCB[proc];
+    for (int i = 0; i < curr_proc.childrenSize(); i++) {
+        int child = curr_proc.frontChildren();
+        cout << "Destroying: " << child << endl; 
+        curr_proc.popChildren();
+        if (destroy(child) == false)
             return false;
     }
-    //remove from parent list
-    PCB[dest.getParent()].removeChild(proc);
-    //remove from RL or waiting
-    if (dest.getState())
-        RL[dest.getPriority()].pop_front();
-    else {
+    // for (auto it = curr_proc.getChildren().begin(); it != curr_proc.getChildren().end(); it++) { //destroy children
+    //     cout << "Destroying: " << *it << endl; 
+    //     if (destroy(*it) == false)
+    //         return false;
+    // }
 
+    //remove from parent list
+    PCB[curr_proc.getParent()].removeChild(proc);
+    //remove from RL or waiting
+    //cout << "State = " << curr_proc.getState() << endl;
+    if (curr_proc.getState()) {
+        //TODO find out why prio is negative
+        //cout << "Prio: " << curr_proc.getPriority() << endl;
+        RL[curr_proc.getPriority()].pop_front();
+    }
+    else {
+        //check all resources 
+        for (int i = 0; i < curr_proc.waitingSize(); i++) {
+            int resource_waiting = curr_proc.frontWaiting();
+            curr_proc.popWaiting();
+            RCB[resource_waiting].removeFromWaitlist(proc);
+        }
     }
     //release all resources
-    //for ()
-    dest.setState(FREE);
+    for (auto it = curr_proc.getResources().begin(); it != curr_proc.getResources().end(); it++) {
+        release(it->first, it->second);
+    }
+    curr_proc.open();
     return true;
 }
 
-bool request(int res, int n) {
-    return true;
-}
-
-bool release(int res, int n) {
+bool request(int r, int n) {
+    int rState = RCB[r].getState();
+    int running = scheduler();
+    // cout << "Running = " << running << endl;
+    // cout << "R = " << r << " " << "N = " << n << endl;
+    // cout << "Rstate = " << rState << endl;
+    if (rState >= n) {
+        RCB[r].setState(rState - n);
+        PCB[running].addResource(r, n);
+    } else {
+        // cout << "Blocking" << endl;
+        PCB[running].block();
+        for (int i = PRIO_HIGH; i >= PRIO_LOW; i--) { //find running process
+            if (!RL[i].empty()) {
+                //RL[i].push_back(RL[i].front());
+                // cout << "Removing = " << i << endl;
+                RL[i].pop_front();
+                break;
+            }
+        }
+        RCB[r].addToWaitlist(running, n);
+    }
     return true;
 }
 
@@ -130,6 +239,7 @@ void timeout() {
         if (!RL[i].empty()) {
             RL[i].push_back(RL[i].front());
             RL[i].pop_front();
+            break;
         }
     }
 }
@@ -163,12 +273,14 @@ int main() {
                     and isnumber(words[1]) and isnumber(words[2])
                     and request(stoi(words[1]), stoi(words[2]))) {
             cout << scheduler() << " ";
+            //printRL();
         } else if (words.size() == 3 and words[0] == "rl"
                     and isnumber(words[1]) and isnumber(words[2])
                     and release(stoi(words[1]), stoi(words[2]))) {
             cout << scheduler() << " ";
         } else if (words.size() == 2 and words[0] == "de"
                     and isnumber(words[1]) and destroy(stoi(words[1]))) {
+            //printRL();
             cout << scheduler() << " ";
         } else {
             cout << ERROR << " ";

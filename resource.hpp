@@ -1,6 +1,9 @@
 #pragma once
 #include <deque>
 
+#define ALLOCATED 1
+#define FREE 0
+
 class Resource {
 private:
     int state;
@@ -16,7 +19,8 @@ public:
     int getInventory();
     void setInventory(int n);
 
+    std::deque<std::pair<int,int>>& getWaitlist();
     void addToWaitlist(int proc, int n);
-    void removeFromWaitlist(int proc, int n);
+    bool removeFromWaitlist(int proc);
     void clearWaitlist();
 };
