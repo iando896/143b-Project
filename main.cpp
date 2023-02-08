@@ -137,6 +137,8 @@ bool create(int prio) {
 bool release(int r, int n, int proc) {
     //cout << "Releasing:" << r << " of " << n << endl;
     //int running = scheduler();
+    if (r < 0 or r > RCB_SIZE - 1 or n > RCB[r].getInventory() or proc == 0)
+        return false;
     int rState = RCB[r].getState();
     Process& curr_proc = PCB[proc];
     pair<int,int> held;
@@ -144,7 +146,7 @@ bool release(int r, int n, int proc) {
     auto it = procResources.begin();
     for (; it != procResources.end(); it++) {
         //cout << it->first << " " << it->second << endl;
-        if (it->first == r and it->second == n) {
+        if (it->first == r) {
             held = *it;
             break;
         }
@@ -152,7 +154,9 @@ bool release(int r, int n, int proc) {
     if (it == procResources.end())
         return false;
     
-    curr_proc.removeResource(r);
+    curr_proc.removeResource(r); // only remove if no longer holding
+    if (held.second - n > 0)
+        curr_proc.addResource(r, held.second - n);
     RCB[r].setState(RCB[r].getState() + n);
 
     while (!RCB[r].getWaitlist().empty() and rState > 0) {
@@ -179,11 +183,6 @@ bool destroy(int proc) {
     //Process does not need to be currently running
     //cout << "Destroying: " << proc << endl; 
     if (proc < 0 or proc > PCB_SIZE - 1)
-        return false;
-
-    int running = scheduler();
-
-    if (!PCB[running].findChild(proc) and proc != running)
         return false;
     
     Process& dest_proc = PCB[proc];
@@ -324,10 +323,20 @@ int main() {
                     and release(stoi(words[1]), stoi(words[2]), scheduler())) {
             cout << scheduler() << " ";
         } else if (words.size() == 2 and words[0] == "de"
-                    and isnumber(words[1]) and destroy(stoi(words[1]))) {
+                    and isnumber(words[1])) {
+            int running = scheduler();
+            if ((stoi(words[1]) == running or PCB[running].findChild(stoi(words[1]))) and 
+                !destroy(stoi(words[1]))) {
+                    cout << ERROR << " ";
+                    continue;
+            }
             //printRL();
             //printAllChildren();
             cout << scheduler() << " ";
+        } else if (words[0] == "debug") {
+            printRL();
+            printAllChildren();
+            printAllResources();
         } else {
             cout << ERROR << " ";
         }
