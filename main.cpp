@@ -62,6 +62,7 @@ void init () {
         PCB[i].open();
         PCB[i].clearChildren();
         PCB[i].clearResources();
+        PCB[i].clearWaiting();
     }
 
     for(int i = 0; i < RCB_SIZE; i++) {
@@ -145,23 +146,26 @@ bool release(int r, int n, int proc) {
     unordered_map<int,int> procResources = curr_proc.getResources();
     auto it = procResources.begin();
     for (; it != procResources.end(); it++) {
-        //cout << it->first << " " << it->second << endl;
+        //cout << "Holding " << it->first << " " << it->second << endl;
         if (it->first == r) {
             held = *it;
             break;
         }
     }
-    if (it == procResources.end())
+    if (it == procResources.end() or held.second != n)
         return false;
-    
+    // if (held.second < n)
+    //     return false;
     curr_proc.removeResource(r); // only remove if no longer holding
     if (held.second - n > 0)
         curr_proc.addResource(r, held.second - n);
-    RCB[r].setState(RCB[r].getState() + n);
+    
 
-    while (!RCB[r].getWaitlist().empty() and rState > 0) {
+    RCB[r].setState(RCB[r].getState() + n);
+    //rState = RCB[r].getState();
+    while (!RCB[r].getWaitlist().empty() and RCB[r].getState() > 0) {
         pair<int,int> next = RCB[r].getWaitlist().front();
-        if (rState >= next.second) {
+        if (RCB[r].getState() >= next.second) {
             RCB[r].setState(RCB[r].getState() - next.second);
             PCB[next.first].addResource(r, next.second);
             PCB[next.first].ready();
@@ -186,16 +190,23 @@ bool destroy(int proc) {
         return false;
     
     Process& dest_proc = PCB[proc];
-
+    // cout << "Proc: " << proc << endl;
+    //cout << "Proc state: " << dest_proc.getState() << endl;
     if (dest_proc.getState() == OPEN)
+    {
+        
         return false;
-    //cout << dest_proc.childrenSize() << endl;
+    }
+        
+    //cout << "CHildren size: " << dest_proc.childrenSize() << endl;
     int child_list_size = dest_proc.childrenSize();
     for (int i = 0; i < child_list_size; i++) {
         int child = dest_proc.frontChildren();
         dest_proc.popChildren();
-        if (destroy(child) == false)
+        if (destroy(child) == false) {
             return false;
+        }
+            
     }
     //cout << endl;
     //remove from parent list
@@ -222,15 +233,21 @@ bool destroy(int proc) {
         for (int i = 0; i < waiting_size; i++) {
             int resource_waiting = dest_proc.frontWaiting();
             dest_proc.popWaiting();
-            if (!RCB[resource_waiting].removeFromWaitlist(proc))
+            if (!RCB[resource_waiting].removeFromWaitlist(proc)) { //failing here
+                //cout << "Error: removing" << endl;
                 return false;
+            }
+                
         }
     }
     //release all resources
     unordered_map<int,int> procResources = dest_proc.getResources();
     for (auto it = procResources.begin(); it != procResources.end(); it++) {
-        if (!release(it->first, it->second, proc))
+        if (!release(it->first, it->second, proc)) {
+            //cout << "Error: releasing" << endl;
             return false;
+        }
+            
     }
     dest_proc.open();
     //cout << "Done destroying" << endl;
@@ -251,7 +268,7 @@ bool request(int r, int n) {
     auto it = procResources.begin();
     for (; it != procResources.end(); it++) {
         //cout << it->first << " " << it->second << endl;
-        if (it->first == r and it->second == n) {
+        if (it->first == r and it->second + n > RCB[r].getInventory()) {
             return false;
         }
     }
@@ -293,15 +310,16 @@ int main() {
 
     string line; //tokenize
     getline(std::cin, line);
-
+    //cout << "Fed line: " << line << endl;
     while(line != "q") {
+        //cout << "entered" << endl;
         vector<string> words;
         stringstream stream (line);
         string intermediate;
         while (getline(stream, intermediate, ' ')) {
             words.push_back(intermediate);
         }
-
+        //cout << "entered" << endl;
         if (words.size() == 1 and words[0] == "in") {
             init();
             cout << endl;
@@ -326,22 +344,25 @@ int main() {
                     and isnumber(words[1])) {
             int running = scheduler();
             if ((stoi(words[1]) == running or PCB[running].findChild(stoi(words[1]))) and 
-                !destroy(stoi(words[1]))) {
-                    cout << ERROR << " ";
-                    continue;
-            }
+                destroy(stoi(words[1]))) 
+                cout << scheduler() << " ";
+            else
+                cout << ERROR << " ";
+                
             //printRL();
             //printAllChildren();
-            cout << scheduler() << " ";
-        } else if (words[0] == "debug") {
+            
+        } else if (words.size() == 1 and words[0] == "debug") {
             printRL();
             printAllChildren();
             printAllResources();
-        } else {
+        } else if (words.size() > 0){
             cout << ERROR << " ";
         }
+        //cout << "entered" << endl;
         //printAllResources();
         getline(std::cin, line);
+        //cout << "Fed line: " << line << endl;
         if (!cin)
             break;
     }

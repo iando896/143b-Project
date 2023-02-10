@@ -98,7 +98,10 @@ std::unordered_map<int,int> Process::getResources() {
 }
 
 void Process::addResource(int r, int n) {
-    resources[r] = n;
+    if (resources.count(r) == 0)
+        resources[r] = n;
+    else
+        resources[r] += n;
 }
 
 void Process::removeResource(int r) {
