@@ -62,7 +62,7 @@ void init () {
         PCB[i].open();
         PCB[i].clearChildren();
         PCB[i].clearResources();
-        PCB[i].clearWaiting();
+        PCB[i].setWaiting(-1);
     }
 
     for(int i = 0; i < RCB_SIZE; i++) {
@@ -169,6 +169,7 @@ bool release(int r, int n, int proc) {
             RCB[r].setState(RCB[r].getState() - next.second);
             PCB[next.first].addResource(r, next.second);
             PCB[next.first].ready();
+            PCB[next.first].setWaiting(-1);
             RCB[r].getWaitlist().pop_front();
             RL[PCB[next.first].getPriority()].push_back(next.first);
         } else
@@ -228,17 +229,10 @@ bool destroy(int proc) {
     else {
         //check all resources
         //cout << "Remove from waiting" << endl;
-        int waiting_size = dest_proc.waitingSize();
-        //cout << "Size: " << waiting_size << endl;
-        for (int i = 0; i < waiting_size; i++) {
-            int resource_waiting = dest_proc.frontWaiting();
-            dest_proc.popWaiting();
-            if (!RCB[resource_waiting].removeFromWaitlist(proc)) { //failing here
-                //cout << "Error: removing" << endl;
-                return false;
-            }
-                
+        if (dest_proc.getWaiting() != -1 and !RCB[dest_proc.getWaiting()].removeFromWaitlist(proc)) {
+            return false;
         }
+        dest_proc.setWaiting(-1);
     }
     //release all resources
     unordered_map<int,int> procResources = dest_proc.getResources();
@@ -288,7 +282,7 @@ bool request(int r, int n) {
                 break;
             }
         }
-        PCB[running].pushWaiting(r);
+        PCB[running].setWaiting(r);
         RCB[r].addToWaitlist(running, n);
     }
     return true;

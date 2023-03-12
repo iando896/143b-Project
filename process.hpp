@@ -19,7 +19,7 @@ private:
     int priority;
     std::deque<int> children;
     std::unordered_map<int,int> resources;
-    std::deque<int> waiting;
+    int waiting; //Resource that is being wait on
 public:
     Process() {state = -1; parent = -1; priority = -1;}
     Process(int st, int par, int prio);
@@ -50,9 +50,9 @@ public:
     void removeResource(int r);
     void clearResources();
 
-    void pushWaiting(int r);
-    int frontWaiting();
-    void popWaiting();
-    int waitingSize();
-    void clearWaiting();
+    void setWaiting(int r);
+    int getWaiting();
+    // void popWaiting();
+    // int waitingSize();
+    // void clearWaiting();
 };

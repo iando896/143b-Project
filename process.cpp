@@ -112,22 +112,10 @@ void Process::clearResources() {
     resources.clear();
 }
 
-void Process::pushWaiting(int r) {
-    waiting.push_back(r);
+void Process::setWaiting(int r) {
+    waiting = r;
 }
 
-int Process::frontWaiting() {
-    return waiting.front();
-}
-
-void Process::popWaiting() {
-    waiting.pop_front();
-}
-
-void Process::clearWaiting() {
-    waiting.clear();
-}
-
-int Process::waitingSize() {
-    return waiting.size();
+int Process::getWaiting() {
+    return waiting;
 }
